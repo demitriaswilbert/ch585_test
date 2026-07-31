@@ -23,6 +23,7 @@
 #include "CH58x_common.h"
 #include "stdbool.h"
 #include "CH58xBLE_LIB.h"
+#include "HAL.h"
 
 bool use_adc = true;
 static char uart_rx_buf[1024];
@@ -117,7 +118,7 @@ static inline bool process_command(const char* cmd_buf, const size_t length)
         USB_CDC_Send((uint8_t*)local_tx_buf, len);
         
         memset(test_data, 0, sizeof(test_data));
-        LL_Encrypt(key, encr_data, test_data);
+        LL_Decrypt(key, encr_data, test_data);
 
         len = sprintf(local_tx_buf, " - Decrypted: ");
         for (int i = 0; i < 16; i++)
@@ -206,6 +207,8 @@ static inline int64_t get_ms_cnt(void)
     } while (hi1 != hi2);
     return ((int64_t)hi1 << 32) | lo;
 }
+
+__attribute__((aligned(4))) uint32_t MEM_BUF[BLE_MEMHEAP_SIZE / 4];
 /*********************************************************************
  * @fn      main
  *
@@ -234,8 +237,25 @@ int main(void)
 
     SysTick_Config(32000);
 
+    // somewhere before your first LL_Encrypt call:
+    bleConfig_t cfg;
+    tmos_memset(&cfg, 0, sizeof(bleConfig_t));
+    cfg.MEMAddr = (uint32_t)MEM_BUF;
+    cfg.MEMLen = (uint32_t)BLE_MEMHEAP_SIZE;
+    cfg.BufMaxLen = (uint32_t)BLE_BUFF_MAX_LEN;   // check HAL/MCU.c or CONFIG.h for the real example's values
+    cfg.BufNumber = (uint32_t)BLE_BUFF_NUM;
+    cfg.TxNumEvent = (uint32_t)BLE_TX_NUM_EVENT;
+    cfg.TxPower = (uint32_t)BLE_TX_POWER;
+    cfg.ConnectNumber = 0;   // no connections needed just for AES
+    cfg.srandCB = SYS_GetSysTickCnt;
+
+    uint8_t err = BLE_LibInit(&cfg);
+    if (err) { PRINT("LIB init error: %x\n", err); /* don't proceed to LL_Encrypt if this fails */ }
+
     while(1)
     {
         UART2_DataTx_Deal( );
+        if (err)
+        USB_CDC_Send("ERROR BLE\n", 10);
     }
 }
