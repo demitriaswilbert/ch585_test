@@ -24,6 +24,7 @@
 #include "stdbool.h"
 #include "CH58xBLE_LIB.h"
 #include "HAL.h"
+#include "aes_hw.h"
 
 bool use_adc = true;
 static char uart_rx_buf[1024];
@@ -96,33 +97,29 @@ static inline bool process_command(const char* cmd_buf, const size_t length)
     }
     else if (strncmp("ch encr", cmd_buf, 7) == 0 && length == 7)
     {
-        uint8_t key[17] = "Never Gonna Give";
-        uint8_t test_data[16];
-        uint8_t encr_data[16];
+        __attribute__((aligned(4))) uint8_t key[16] = "Never Gonna Give";
+        __attribute__((aligned(4))) uint8_t test_data[16];
+        __attribute__((aligned(4))) uint8_t encr_data[16];
         for (int i = 0; i < 16; i++)
             test_data[i] = i;
-        
-        LL_Encrypt(key, test_data, encr_data);
 
-        size_t len = sprintf(local_tx_buf, "Encrypt Test\n");
-        len += sprintf(local_tx_buf + len, " - Plaintext: ");
-        for (int i = 0; i < 16; i++)
-            len += sprintf(local_tx_buf + len, "%02x ", test_data[i]);
+        AES_HW_Run((uint32_t*)key, (uint32_t*)test_data, (uint32_t*)encr_data, 1);   // 1 = encrypt
+
+        size_t len = sprintf(local_tx_buf, "Encrypt Test\n - Plaintext: ");
+        for (int i = 0; i < 16; i++) len += sprintf(local_tx_buf + len, "%02x ", test_data[i]);
         len += sprintf(local_tx_buf + len, "\n");
         USB_CDC_Send((uint8_t*)local_tx_buf, len);
 
         len = sprintf(local_tx_buf, " - Encrypted: ");
-        for (int i = 0; i < 16; i++)
-            len += sprintf(local_tx_buf + len, "%02x ", encr_data[i]);
+        for (int i = 0; i < 16; i++) len += sprintf(local_tx_buf + len, "%02x ", encr_data[i]);
         len += sprintf(local_tx_buf + len, "\n");
         USB_CDC_Send((uint8_t*)local_tx_buf, len);
-        
+
         memset(test_data, 0, sizeof(test_data));
-        LL_Decrypt(key, encr_data, test_data);
+        AES_HW_Run((uint32_t*)key, (uint32_t*)encr_data, (uint32_t*)test_data, 0);   // 0 = decrypt
 
         len = sprintf(local_tx_buf, " - Decrypted: ");
-        for (int i = 0; i < 16; i++)
-            len += sprintf(local_tx_buf + len, "%02x ", test_data[i]);
+        for (int i = 0; i < 16; i++) len += sprintf(local_tx_buf + len, "%02x ", test_data[i]);
         len += sprintf(local_tx_buf + len, "\n");
         USB_CDC_Send((uint8_t*)local_tx_buf, len);
     }
@@ -237,25 +234,11 @@ int main(void)
 
     SysTick_Config(32000);
 
-    // somewhere before your first LL_Encrypt call:
-    bleConfig_t cfg;
-    tmos_memset(&cfg, 0, sizeof(bleConfig_t));
-    cfg.MEMAddr = (uint32_t)MEM_BUF;
-    cfg.MEMLen = (uint32_t)BLE_MEMHEAP_SIZE;
-    cfg.BufMaxLen = (uint32_t)BLE_BUFF_MAX_LEN;   // check HAL/MCU.c or CONFIG.h for the real example's values
-    cfg.BufNumber = (uint32_t)BLE_BUFF_NUM;
-    cfg.TxNumEvent = (uint32_t)BLE_TX_NUM_EVENT;
-    cfg.TxPower = (uint32_t)BLE_TX_POWER;
-    cfg.ConnectNumber = 0;   // no connections needed just for AES
-    cfg.srandCB = SYS_GetSysTickCnt;
-
-    uint8_t err = BLE_LibInit(&cfg);
-    if (err) { PRINT("LIB init error: %x\n", err); /* don't proceed to LL_Encrypt if this fails */ }
+    // CH58x_BLEInit();
+    // RF_RoleInit();
 
     while(1)
     {
         UART2_DataTx_Deal( );
-        if (err)
-        USB_CDC_Send("ERROR BLE\n", 10);
     }
 }

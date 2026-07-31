@@ -25,7 +25,8 @@ User/main.o: ../User/main.c ../User/UART.h \
  c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/RTC.h \
  c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/SLEEP.h \
  c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/LED.h \
- c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/KEY.h
+ c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/KEY.h \
+ ../User/aes_hw.h
 ../User/UART.h:
 c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/SRC/StdPeriphDriver/inc/CH58x_common.h:
 c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/SRC/StdPeriphDriver/inc/CH585SFR.h:
@@ -54,3 +55,4 @@ c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/RTC.h:
 c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/SLEEP.h:
 c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/LED.h:
 c:/Users/Dewe/Downloads/ch585-main/ch585-main/EVT/EXAM/BLE/HAL/include/KEY.h:
+../User/aes_hw.h:
